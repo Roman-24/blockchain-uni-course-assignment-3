@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "fabric-contract-api": "^2.2.2",
-    "jquery.terminal": "^2.32.1"
-  }
-}

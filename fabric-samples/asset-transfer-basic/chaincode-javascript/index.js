@@ -6,7 +6,7 @@
 
 'use strict';
 
-const flyNet = require('./lib/flyNet');
+const assetTransfer = require('./lib/assetTransfer');
 
-module.exports.flyNet = flyNet;
-module.exports.contracts = [flyNet];
+module.exports.AssetTransfer = assetTransfer;
+module.exports.contracts = [assetTransfer];

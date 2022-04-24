@@ -29,11 +29,11 @@
 		"Org1MSP": {
 			"mspid": "Org1MSP",
 			"adminPrivateKey": {
-				"path": "/tmp/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/bc0b97f36c78b15f83bea7b6464914ab53e757f89cc404436609f920c620b24c_sk"
+				"path": "/tmp/crypto/peerOrganizations/org1.example.com/msp/keystore/ca401f401e0422af231a0671fe8deff417816d263eff2a31b8838a773f2007ed_sk"
 			},
 			"peers": ["peer0.org1.example.com"],
 			"signedCert": {
-				"path": "/tmp/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/cert.pem"
+				"path": "/tmp/crypto/peerOrganizations/org1.example.com/msp/signcerts/cert.pem"
 			}
 		}
 	},

@@ -15,10 +15,8 @@ const { buildCCPOrg1, buildWallet } = require('../../test-application/javascript
 const channelName = 'mychannel';
 const chaincodeName = 'basic';
 const mspOrg1 = 'Org1MSP';
-const mspOrg2 = 'Org2MSP';
 const walletPath = path.join(__dirname, 'wallet');
-const org1UserId = 'appUser1';
-const org2UserId = 'appUser2';
+const org1UserId = 'appUser';
 
 function prettyJSONString(inputString) {
 	return JSON.stringify(JSON.parse(inputString), null, 2);
@@ -74,24 +72,21 @@ function prettyJSONString(inputString) {
 async function main() {
 	try {
 		// build an in memory object with the network configuration (also known as a connection profile)
-		const EconFly = buildCCPOrg1();
-		const BusiFly = buildCCPOrg2();
+		const ccp = buildCCPOrg1();
 
 		// build an instance of the fabric ca services client based on
 		// the information in the network configuration
-		const EconFlycaClient = buildCAClient(FabricCAServices, EconFly, 'ca.org1.example.com');
-		const BusiFlycaClient = buildCAClient(FabricCAServices, BusiFly, 'ca.org2.example.com');
+		const caClient = buildCAClient(FabricCAServices, ccp, 'ca.org1.example.com');
 
 		// setup the wallet to hold the credentials of the application user
 		const wallet = await buildWallet(Wallets, walletPath);
 
 		// in a real application this would be done on an administrative flow, and only once
-		// await enrollAdmin(caClient, wallet, mspOrg1);
+		await enrollAdmin(caClient, wallet, mspOrg1);
 
 		// in a real application this would be done only when a new user was required to be added
 		// and would be part of an administrative flow
-		await registerAndEnrollUser(EconFlycaClient, wallet, mspOrg1, org1UserId, 'org1.department1');
-		await registerAndEnrollUser(BusiFlycaClient, wallet, mspOrg2, org2UserId, 'org2.department1');
+		await registerAndEnrollUser(caClient, wallet, mspOrg1, org1UserId, 'org1.department1');
 
 		// Create a new gateway instance for interacting with the fabric network.
 		// In a real application this would be done as the backend server session is setup for
@@ -103,16 +98,10 @@ async function main() {
 			// The user will now be able to create connections to the fabric network and be able to
 			// submit transactions and query. All transactions submitted by this gateway will be
 			// signed by this user using the credentials stored in the wallet.
-			await gateway.connect(EconFly, {
+			await gateway.connect(ccp, {
 				wallet,
 				identity: org1UserId,
 				discovery: { enabled: true, asLocalhost: true } // using asLocalhost as this gateway is using a fabric network deployed locally
-			});
-
-			await gateway.connect(BusiFly, {
-				wallet,
-				identity: org2UserId,
-				discovery: { enabled: true, asLocalhost: true }
 			});
 
 			// Build a network instance based on the channel where the smart contract is deployed
