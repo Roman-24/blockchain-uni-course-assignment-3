@@ -85,6 +85,7 @@ class AssetTransfer extends Contract {
             flyTo: flyTo,
             dateTimeDeparture: dateTimeDeparture,
             availablePlaces: availablePlaces,
+            reservations: {},
         };
 
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
@@ -112,6 +113,10 @@ class AssetTransfer extends Contract {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
 
+        // get the asset from chaincode state
+        const flightJSON = await ctx.stub.getState(flightNr);
+        reservations = flightJSON[reservations];
+
         // overwriting original asset with new asset
         const updatedFlight = {
             flightNr: flightNr,
@@ -119,6 +124,7 @@ class AssetTransfer extends Contract {
             flyTo: flyTo,
             dateTimeDeparture: dateTimeDeparture,
             availablePlaces: availablePlaces,
+            reservations: reservations,
         };
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
         return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedAsset))));
@@ -156,14 +162,51 @@ class AssetTransfer extends Contract {
     }
 
     async reserveSeats(ctx, flightNr, number) {
-    
+
+        // asset must exist for additing reservation
+        const exists = await this.AssetExists(ctx, flightNr);
+        if (exists == false) {
+            throw new Error(`The asset ${flightNr} does not exist`);
+        }
+
+        do {
+            let reservationNrTemp = Math.floor(Math.random() * 1000).toString(16);
+        } while (reservations[reservationNrTemp] == undefined)
+        
+        const reservation = {
+            flightNr: flightNr,
+            numberOfSeats: number,
+            // state 0 -> reserved
+            // state 1 -> comfirmed (booked)
+            state: 0,
+            // random integer from 0 to 999 in hex value
+            reservationNr: reservationNrTemp,
+        };
+
+        // get the reservations from chaincode state
+        const flightJSON = await ctx.stub.getState(flightNr);
+        reservations = flightJSON[reservations];
+        // add reservation to flight
+        reservations.push(reservation);
+
+        // overwriting original asset with new asset
+        const updatedFlight = {
+            flightNr: flightNr,
+            flyFrom: flyFrom,
+            flyTo: flyTo,
+            dateTimeDeparture: dateTimeDeparture,
+            availablePlaces: availablePlaces,
+            reservations: reservations,
+        };
+        // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
+        return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedAsset))));    
     }
 
     async bookSeats(ctx, reservationNr) {
 
     }
 
-    async checkIn(ctx, reservationNr, passportIDs[]) {
+    async checkIn(ctx, reservationNr, passportIDs) {
 
     } 
 
@@ -173,8 +216,8 @@ class AssetTransfer extends Contract {
     async AssetExists(ctx, flightNr) {
 
         // get the asset from chaincode state
-        const assetJSON = await ctx.stub.getState(flightNr); 
-        return assetJSON && assetJSON.length > 0;
+        const flightJSON = await ctx.stub.getState(flightNr); 
+        return flightJSON && flightJSON.length > 0;
     }
 
     // isOrganization returns true if the function caller is an organization.
@@ -185,6 +228,7 @@ class AssetTransfer extends Contract {
         }
         return false;
     }
+
 }
 
 module.exports = AssetTransfer;
