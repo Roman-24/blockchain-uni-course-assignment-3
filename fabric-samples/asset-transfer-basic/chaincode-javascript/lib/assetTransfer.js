@@ -14,78 +14,79 @@ const { Contract } = require('fabric-contract-api');
 class AssetTransfer extends Contract {
 
     async InitLedger(ctx) {
-        const assets = [
+
+        console.info('============= START : Initialize Ledger ===========');
+
+        const flights = [
             {
-                ID: 'asset1',
-                Color: 'blue',
-                Size: 5,
-                Owner: 'Tomoko',
-                AppraisedValue: 300,
+                flightNr: "EC001",
+                flyFrom: "BUD",
+                flyTo: "TXL",
+                dateTimeDeparture: 05032021-1034,
+                availablePlaces: 100,
             },
             {
-                ID: 'asset2',
-                Color: 'red',
-                Size: 5,
-                Owner: 'Brad',
-                AppraisedValue: 400,
-            },
-            {
-                ID: 'asset3',
-                Color: 'green',
-                Size: 10,
-                Owner: 'Jin Soo',
-                AppraisedValue: 500,
-            },
-            {
-                ID: 'asset4',
-                Color: 'yellow',
-                Size: 10,
-                Owner: 'Max',
-                AppraisedValue: 600,
-            },
-            {
-                ID: 'asset5',
-                Color: 'black',
-                Size: 15,
-                Owner: 'Adriana',
-                AppraisedValue: 700,
-            },
-            {
-                ID: 'asset6',
-                Color: 'white',
-                Size: 15,
-                Owner: 'Michel',
-                AppraisedValue: 800,
+                flightNr: "BS015",
+                flyFrom: "MUC",
+                flyTo: "LIS",
+                dateTimeDeparture: 10042021-2157,
+                availablePlaces: 150,
             },
         ];
 
-        for (const asset of assets) {
-            asset.docType = 'asset';
+        for (const flight of flights) {
+            flight.docType = 'flight';
             // example of how to write to world state deterministically
             // use convetion of alphabetic order
             // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
             // when retrieving data, in any lang, the order of data will be the same and consequently also the corresonding hash
-            await ctx.stub.putState(asset.ID, Buffer.from(stringify(sortKeysRecursive(asset))));
+            await ctx.stub.putState(flight.flightNr, Buffer.from(stringify(sortKeysRecursive(flight))));
         }
     }
 
     // CreateAsset issues a new asset to the world state with given details.
-    async CreateAsset(ctx, id, color, size, owner, appraisedValue) {
-        const exists = await this.AssetExists(ctx, id);
-        if (exists) {
-            throw new Error(`The asset ${id} already exists`);
+    // create flight
+    async CreateAsset(ctx, flyFrom, flyTo, dateTimeDeparture, availablePlaces) {
+
+        // chceck if function caller is an organization
+        const isOrganization = await this.isOrganization(ctx);
+        if (isOrganization == false) {
+            throw new Error('Only organizations can create assets');
         }
 
-        const asset = {
-            ID: id,
-            Color: color,
-            Size: size,
-            Owner: owner,
-            AppraisedValue: appraisedValue,
+        const exists = await this.AssetExists(ctx, flightNr);
+        if (exists) {
+            throw new Error(`The asset ${flightNr} already exists`);
+        }
+
+        // get organization name from function caller
+        const mspid = ctx.clientIdentity.getMSPID();
+        const orgName = mspid.split('MSP')[0];
+
+        // generate random int form 0 to 999
+        const randomInt = Math.floor(Math.random() * 1000);
+        // https://stackoverflow.com/questions/1127905/how-can-i-format-an-integer-to-a-specific-length-in-javascript
+        randomInt = randomInt.toString().padStart(3, '0');
+
+        if (orgName == 'Org1') {
+            const flightName = 'EC';
+        } else if ( orgName == 'Org2' ) {
+            const flightName = 'BS';
+        }
+
+        const flightNr = flightName + randomInt;
+
+        const flight = {
+            flightNr: flightNr,
+            flyFrom: flyFrom,
+            flyTo: flyTo,
+            dateTimeDeparture: dateTimeDeparture,
+            availablePlaces: availablePlaces,
         };
+
         //we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
-        await ctx.stub.putState(id, Buffer.from(stringify(sortKeysRecursive(asset))));
-        return JSON.stringify(asset);
+        await ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(flight))));
+        return JSON.stringify(flight);
     }
 
     // ReadAsset returns the asset stored in the world state with given id.
@@ -161,6 +162,16 @@ class AssetTransfer extends Contract {
             result = await iterator.next();
         }
         return JSON.stringify(allResults);
+    }
+
+
+    // isOrganization returns true if the function caller is an organization.
+    isOrganization(ctx) {
+        const mspid = ctx.clientIdentity.getMSPID();
+        if (mspid === 'Org1MSP' || mspid === 'Org2MSP') {
+            return true;
+        }
+        return false;
     }
 }
 
