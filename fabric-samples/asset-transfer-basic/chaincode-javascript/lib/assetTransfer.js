@@ -49,8 +49,8 @@ class AssetTransfer extends Contract {
     async CreateAsset(ctx, flyFrom, flyTo, dateTimeDeparture, availablePlaces) {
 
         // chceck if function caller is an organization
-        const isOrganization = await this.isOrganization(ctx);
-        if (isOrganization == false) {
+        const isAeroline = await this.isAeroline(ctx);
+        if (isAeroline == false) {
             throw new Error('Only organizations can create assets');
         }
 
@@ -115,7 +115,8 @@ class AssetTransfer extends Contract {
 
         // get the asset from chaincode state
         const flightJSON = await ctx.stub.getState(flightNr);
-        reservations = flightJSON[reservations];
+        const flight = JSON.parse(flightJSON.toString());
+        reservations = flight[reservations];
 
         // overwriting original asset with new asset
         const updatedFlight = {
@@ -161,7 +162,73 @@ class AssetTransfer extends Contract {
         return JSON.stringify(allResults);
     }
 
+    // function allowing the aerolines to complete the reservation of a travel agency
+    async bookSeats(ctx, flightNr) {
+    
+        // check if function caller is an aeroline
+        const isAeroline = await this.isAeroline(ctx);
+        if (isAeroline == false) {
+            throw new Error('Only aerolines can reserve seats');
+        }
+
+        // asset must exist for additing reservation
+        const exists = await this.AssetExists(ctx, flightNr);
+        if (exists == false) {
+            throw new Error(`The asset ${flightNr} does not exist`);
+        }
+
+        // get the flight from chaincode state
+        const flightJSON = await ctx.stub.getState(flightNr);
+        const flight = JSON.parse(flightJSON.toString());
+
+        // get no of available places
+        const availablePlaces = flight.availablePlaces;
+
+        // get reservations from the flight
+        const reservations = flight.reservations;
+
+        // iterate the reservations
+        for (const reservation in reservations) {
+            // check the state of the reservation
+            if (reservations[reservation].state == 0) {
+                // check if there are more available places than reservation number of seats
+                if (availablePlaces >= reservations[reservation].seats) {
+
+                    // if the reservation is in state 0, it means that the travel agency has not confirmed the reservation
+                    // therefore, we can add the reservation to the flight
+                    reservations[reservation].state = 1;
+                    availablePlaces -= reservations[reservation].seats;
+                }
+                // if there are not enough available places, we can't add the reservation
+                else {
+                    reservations[reservation].state = 2;
+                    // print to console that the reservation was not added
+                    console.log(`The reservation ${reservation} was not added to the flight ${flightNr} due to the lack of free places`);
+                }
+            }
+        }
+
+        // overwriting original asset with new asset
+        const updatedFlight = {
+            flightNr: flightNr,
+            flyFrom: flyFrom,
+            flyTo: flyTo,
+            dateTimeDeparture: dateTimeDeparture,
+            availablePlaces: availablePlaces,
+            reservations: reservations,
+        };
+        // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
+        return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedAsset)))); 
+    }
+
+    // function alowing the travel agency to reserve a number of seats on a flight
     async reserveSeats(ctx, flightNr, number) {
+
+        // check if function caller is a travel agency
+        const isTravelAgency = await this.isTravelAgency(ctx);
+        if (isTravelAgency == false) {
+            throw new Error('Only travel agencies can book seats');
+        } 
 
         // asset must exist for additing reservation
         const exists = await this.AssetExists(ctx, flightNr);
@@ -170,14 +237,15 @@ class AssetTransfer extends Contract {
         }
 
         do {
-            let reservationNrTemp = Math.floor(Math.random() * 1000).toString(16);
+            let reservationNrTemp = flightNr + "-" + Math.floor(Math.random() * 1000).toString(16);
         } while (reservations[reservationNrTemp] == undefined)
         
         const reservation = {
             flightNr: flightNr,
             numberOfSeats: number,
-            // state 0 -> reserved
+            // state 0 -> pending
             // state 1 -> comfirmed (booked)
+            // state 2 -> canceled
             state: 0,
             // random integer from 0 to 999 in hex value
             reservationNr: reservationNrTemp,
@@ -185,7 +253,8 @@ class AssetTransfer extends Contract {
 
         // get the reservations from chaincode state
         const flightJSON = await ctx.stub.getState(flightNr);
-        reservations = flightJSON[reservations];
+        flight = JSON.parse(flightJSON.toString());
+        reservations = flight[reservations];
         // add reservation to flight
         reservations.push(reservation);
 
@@ -202,10 +271,6 @@ class AssetTransfer extends Contract {
         return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedAsset))));    
     }
 
-    async bookSeats(ctx, reservationNr) {
-
-    }
-
     async checkIn(ctx, reservationNr, passportIDs) {
 
     } 
@@ -216,14 +281,24 @@ class AssetTransfer extends Contract {
     async AssetExists(ctx, flightNr) {
 
         // get the asset from chaincode state
-        const flightJSON = await ctx.stub.getState(flightNr); 
-        return flightJSON && flightJSON.length > 0;
+        const flightJSON = await ctx.stub.getState(flightNr);
+        const exists = (flightJSON.toString() != '');
+        return exists && flightJSON.length > 0;
     }
 
-    // isOrganization returns true if the function caller is an organization.
-    isOrganization(ctx) {
+    // isAeroline returns true if the function caller is an aeroline.
+    isAeroline(ctx) {
         const mspid = ctx.clientIdentity.getMSPID();
         if (mspid === 'Org1MSP' || mspid === 'Org2MSP') {
+            return true;
+        }
+        return false;
+    }
+
+    // isTravelAgency returns true if the function caller is a travel agency.
+    isTravelAgency(ctx) {
+        const mspid = ctx.clientIdentity.getMSPID();
+        if (mspid === 'Org3MSP') {
             return true;
         }
         return false;
