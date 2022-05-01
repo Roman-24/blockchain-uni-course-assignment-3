@@ -180,8 +180,11 @@ async function main() {
                                     message: 'Enter available places: ',
                                     initial: '',
                                 });
-								const result = await contract.submitTransaction('CreateAsset', responseFlyFrom.flyFrom, responseFlyTo.flyTo, responseDateTimeDeparture.dateTimeDeparture, responseAvailablePlaces.availablePlaces);
-                            })();
+								let result = await contract.submitTransaction('CreateAsset', responseFlyFrom.flyFrom.toString(), responseFlyTo.flyTo.toString(), responseDateTimeDeparture.dateTimeDeparture.toString(), responseAvailablePlaces.availablePlaces.toString());
+								if (`${result}` !== '') {
+									console.log(`*** Result: ${prettyJSONString(result.toString())}`);
+								}
+							})();
                             
                         }
 						else if (response2.airlineAction == "getAllAssets") {

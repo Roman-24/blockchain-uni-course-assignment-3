@@ -59,12 +59,11 @@ class AssetTransfer extends Contract {
 
         let flightNr;
         do {
-            // generate random int form 0 to 999
-            let randomInt = Math.floor(Math.random() * 1000);
+            console.log('Generating flight number');
+            let randomInt = 0;
+            randomInt++;
             // https://stackoverflow.com/questions/1127905/how-can-i-format-an-integer-to-a-specific-length-in-javascript
-            console.log("kurvaaa1");
             randomInt = randomInt.toString().padStart(3, '0');
-            console.log("kurvaaa1");
 
             let flightName
             if (orgName == 'Org1') {
@@ -74,8 +73,7 @@ class AssetTransfer extends Contract {
             }
 
             flightNr = flightName + randomInt;
-        } while (await this.AssetExists(ctx, flightNr) == false);
-
+        } while (await !this.AssetExists(ctx, flightNr));
 
         let flight = {
             flightNr: flightNr,
@@ -85,9 +83,9 @@ class AssetTransfer extends Contract {
             availablePlaces: availablePlaces,
             reservations: {},
         };
-
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
         await ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(flight))));
+        console.log("state bol vlozeny")
         return JSON.stringify(flight);
     }
 
@@ -126,7 +124,7 @@ class AssetTransfer extends Contract {
             reservations: reservations,
         };
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
-        return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedAsset))));
+        return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedFlight))));
     }
 
     // DeleteAsset deletes an given asset from the world state.
@@ -216,7 +214,7 @@ class AssetTransfer extends Contract {
             reservations: reservations,
         };
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
-        return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedAsset))));
+        return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedFlight))));
     }
 
     // function alowing the travel agency to reserve a number of seats on a flight
@@ -235,7 +233,7 @@ class AssetTransfer extends Contract {
         }
 
         do {
-            let reservationNrTemp = flightNr + "-" + Math.floor(Math.random() * 1000).toString(16);
+            let reservationNrTemp = flightNr + "-" + "20";//Math.floor(Math.random() * 1000).toString(16);
         } while (reservations[reservationNrTemp] == undefined)
 
         let reservation = {
@@ -266,7 +264,7 @@ class AssetTransfer extends Contract {
             reservations: reservations,
         };
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
-        return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedAsset))));
+        return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedFlight))));
     }
 
     async checkIn(ctx, reservationNr, passportIDs) {
@@ -277,11 +275,8 @@ class AssetTransfer extends Contract {
 
     // AssetExists returns true when asset with given ID exists in world state.
     async AssetExists(ctx, flightNr) {
-
-        // get the asset from chaincode state
-        let flightJSON = await ctx.stub.getState(flightNr);
-        let exists = (flightJSON.toString() != '');
-        return exists && flightJSON.length > 0;
+        const flightJSON = await ctx.stub.getState(flightNr);
+        return flightJSON && flightJSON.length > 0;
     }
 
     // isAeroline returns true if the function caller is an aeroline.
