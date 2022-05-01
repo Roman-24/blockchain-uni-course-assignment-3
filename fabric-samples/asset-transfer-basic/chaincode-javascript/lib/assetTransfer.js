@@ -55,6 +55,7 @@ class AssetTransfer extends Contract {
 
         // get organization name from function caller
         let mspid = ctx.clientIdentity.getMSPID();
+        console.log(`mspid: ${mspid}`);
         let orgName = mspid.split('MSP')[0];
 
         let flightNr;
@@ -103,15 +104,14 @@ class AssetTransfer extends Contract {
     async updateAsset(ctx, flightNr, flyFrom, flyTo, dateTimeDeparture, availablePlaces) {
 
         // asset must exist for update
-        let exists = await this.assetExists(ctx, flightNr);
-        if (exists == false) {
+        if (await !this.assetExists(ctx, flightNr)) {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
 
         // get the asset from chaincode state
         let flightJSON = await ctx.stub.getState(flightNr);
         let flight = JSON.parse(flightJSON.toString());
-        reservations = flight[reservations];
+        let reservations = flight.reservations;
 
         // overwriting original asset with new asset
         let updatedFlight = {
@@ -122,6 +122,8 @@ class AssetTransfer extends Contract {
             availablePlaces: availablePlaces,
             reservations: reservations,
         };
+        console.log(`updatedFlight: ${JSON.stringify(updatedFlight)}`);
+        await this.deleteAsset(ctx, flightNr);
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
         return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedFlight))));
     }
@@ -230,8 +232,14 @@ class AssetTransfer extends Contract {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
 
+        // get the reservations from chaincode state
+        let flightJSON = await ctx.stub.getState(flightNr);
+        flight = JSON.parse(flightJSON.toString());
+        let reservations = flight.reservations;
+
+        let reservationNrTemp;
         do {
-            let reservationNrTemp = flightNr + "-" + "20"; //Math.floor(Math.random() * 1000).toString(16);
+            reservationNrTemp = flightNr + "-" + (reservations.length + 1).toString().padStart(3, '0');
         } while (reservations[reservationNrTemp] == undefined)
 
         let reservation = {
@@ -245,10 +253,6 @@ class AssetTransfer extends Contract {
             reservationNr: reservationNrTemp,
         };
 
-        // get the reservations from chaincode state
-        let flightJSON = await ctx.stub.getState(flightNr);
-        flight = JSON.parse(flightJSON.toString());
-        reservations = flight[reservations];
         // add reservation to flight
         reservations.push(reservation);
 

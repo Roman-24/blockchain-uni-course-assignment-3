@@ -143,7 +143,7 @@ async function main() {
                                     name: 'val',
                                     message: 'Enter flight number for find: ',
                                     initial: '',
-                                    validate: flightNrForFind => flightNrForFind.length == 5 ? true : 'Please enter a valid flight number'
+                                    validate: text => text.length == 5 ? true : 'Please enter a valid flight number'
                                 });
                                 numOfseat = await prompts({
                                     type: 'number',
@@ -205,21 +205,21 @@ async function main() {
                                     name: 'flyFrom',
                                     message: 'Enter fly from: ',
                                     initial: '',
-                                    validate: flyFrom => flyFrom.length > 0 ? true : 'Please enter a valid fly from'
+                                    validate: text => text.length > 0 ? true : 'Please enter a valid fly from'
                                 });
                                 const responseFlyTo = await prompts({
                                     type: 'text',
                                     name: 'flyTo',
                                     message: 'Enter fly to: ',
                                     initial: '',
-                                    validate: flyTo => flyTo.length > 0 ? true : 'Please enter a valid fly to'
+                                    validate: text => text.length > 0 ? true : 'Please enter a valid fly to'
                                 });
                                 const responseDateTimeDeparture = await prompts({
                                     type: 'text',
                                     name: 'dateTimeDeparture',
                                     message: 'Enter date time departure: ',
                                     initial: '',
-                                    validate: dateTimeDeparture => dateTimeDeparture.length > 0 ? true : 'Please enter a valid date'
+                                    validate: text => text.length > 0 ? true : 'Please enter a valid date'
                                 });
                                 const responseAvailablePlaces = await prompts({
                                     type: 'number',
@@ -248,6 +248,49 @@ async function main() {
                             });
                             let result = await contract.evaluateTransaction('readAsset', flightNrForFind.val.toString());
                             console.log(`*** Result: ${prettyJSONString(result.toString())}`);
+                        } else if (response2.airlineAction == "updateAsset") {
+                            await (async() => {
+                                // identifiing flight
+                                const responseFlightNr = await prompts({
+                                    type: 'text',
+                                    name: 'val',
+                                    message: 'Enter flight number: ',
+                                    initial: '',
+                                    validate: text => text.length == 5 ? true : 'Please enter a valid flight number'
+                                });
+                                // editing values
+                                const responseFlyFrom = await prompts({
+                                    type: 'text',
+                                    name: 'val',
+                                    message: 'Enter fly from: ',
+                                    initial: '',
+                                    validate: text => text.length > 0 ? true : 'Please enter a valid fly from'
+                                });
+                                const responseFlyTo = await prompts({
+                                    type: 'text',
+                                    name: 'val',
+                                    message: 'Enter fly to: ',
+                                    initial: '',
+                                    validate: text => text.length > 0 ? true : 'Please enter a valid fly to'
+                                });
+                                const responseDateTimeDeparture = await prompts({
+                                    type: 'text',
+                                    name: 'val',
+                                    message: 'Enter date time departure: ',
+                                    initial: '',
+                                    validate: text => text.length > 0 ? true : 'Please enter a valid date'
+                                });
+                                const responseAvailablePlaces = await prompts({
+                                    type: 'number',
+                                    name: 'val',
+                                    message: 'Enter available places: ',
+                                    initial: '256',
+                                });
+
+								let result = await contract.evaluateTransaction('updateAsset', responseFlightNr.val.toString(), responseFlyFrom.val.toString(), responseFlyTo.val.toString(), responseDateTimeDeparture.val.toString(), responseAvailablePlaces.val.toString());
+                            	console.log(`*** Result: ${prettyJSONString(result.toString())}`);
+                            })();
+
                         }
                         console.log("odpajam sa");
                         gateway.disconnect();
