@@ -53,33 +53,27 @@ class AssetTransfer extends Contract {
             throw new Error('Only organizations can create assets');
         }
 
-        let exists = await this.AssetExists(ctx, flightNr);
-        if (exists) {
-            throw new Error(`The asset ${flightNr} already exists`);
-        }
-
-        onsole.log("kurvaaa0");
-
         // get organization name from function caller
         let mspid = ctx.clientIdentity.getMSPID();
         let orgName = mspid.split('MSP')[0];
 
+        let flightNr;
         do {
             // generate random int form 0 to 999
-            let randomInt = 9; // Math.floor(Math.random() * 1000);
+            let randomInt = Math.floor(Math.random() * 1000);
             // https://stackoverflow.com/questions/1127905/how-can-i-format-an-integer-to-a-specific-length-in-javascript
             console.log("kurvaaa1");
             randomInt = randomInt.toString().padStart(3, '0');
             console.log("kurvaaa1");
 
-
+            let flightName
             if (orgName == 'Org1') {
-                let flightName = 'EC';
+                flightName = 'EC';
             } else if (orgName == 'Org2') {
-                let flightName = 'BS';
+                flightName = 'BS';
             }
 
-            let flightNr = flightName + randomInt;
+            flightNr = flightName + randomInt;
         } while (await this.AssetExists(ctx, flightNr) == false);
 
 
@@ -241,7 +235,7 @@ class AssetTransfer extends Contract {
         }
 
         do {
-            let reservationNrTemp = flightNr + "-" + "20"; // Math.floor(Math.random() * 1000).toString(16);
+            let reservationNrTemp = flightNr + "-" + Math.floor(Math.random() * 1000).toString(16);
         } while (reservations[reservationNrTemp] == undefined)
 
         let reservation = {
