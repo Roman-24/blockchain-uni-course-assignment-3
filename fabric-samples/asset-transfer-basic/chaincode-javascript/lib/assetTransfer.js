@@ -13,7 +13,7 @@ const { Contract } = require('fabric-contract-api');
 
 class AssetTransfer extends Contract {
 
-    async InitLedger(ctx) {
+    async initLedger(ctx) {
 
         console.info('============= START : Initialize Ledger ===========');
 
@@ -43,9 +43,9 @@ class AssetTransfer extends Contract {
         }
     }
 
-    // CreateAsset issues a new asset to the world state with given details.
+    // createAsset issues a new asset to the world state with given details.
     // create flight
-    async CreateAsset(ctx, flyFrom, flyTo, dateTimeDeparture, availablePlaces) {
+    async createAsset(ctx, flyFrom, flyTo, dateTimeDeparture, availablePlaces) {
 
         // chceck if function caller is an organization
         let isAeroline = await this.isAeroline(ctx);
@@ -73,7 +73,7 @@ class AssetTransfer extends Contract {
             }
 
             flightNr = flightName + randomInt;
-        } while (await !this.AssetExists(ctx, flightNr));
+        } while (await this.assetExists(ctx, flightNr));
 
         let flight = {
             flightNr: flightNr,
@@ -85,12 +85,11 @@ class AssetTransfer extends Contract {
         };
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
         await ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(flight))));
-        console.log("state bol vlozeny")
         return JSON.stringify(flight);
     }
 
     // ReadAsset returns the asset stored in the world state with given id.
-    async ReadAsset(ctx, flightNr) {
+    async readAsset(ctx, flightNr) {
 
         // get the asset from chaincode state
         let assetJSON = await ctx.stub.getState(flightNr);
@@ -101,10 +100,10 @@ class AssetTransfer extends Contract {
     }
 
     // UpdateAsset updates an existing asset in the world state with provided parameters.
-    async UpdateAsset(ctx, flightNr, flyFrom, flyTo, dateTimeDeparture, availablePlaces) {
+    async updateAsset(ctx, flightNr, flyFrom, flyTo, dateTimeDeparture, availablePlaces) {
 
         // asset must exist for update
-        let exists = await this.AssetExists(ctx, flightNr);
+        let exists = await this.assetExists(ctx, flightNr);
         if (exists == false) {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
@@ -128,17 +127,17 @@ class AssetTransfer extends Contract {
     }
 
     // DeleteAsset deletes an given asset from the world state.
-    async DeleteAsset(ctx, flightNr) {
+    async deleteAsset(ctx, flightNr) {
 
-        let exists = await this.AssetExists(ctx, flightNr);
+        let exists = await this.assetExists(ctx, flightNr);
         if (exists == false) {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
         return ctx.stub.deleteState(flightNr);
     }
 
-    // GetAllAssets returns all assets found in the world state.
-    async GetAllAssets(ctx) {
+    // getAllAssets returns all assets found in the world state.
+    async getAllAssets(ctx) {
         let allResults = [];
         // range query with empty string for startKey and endKey does an open-ended query of all assets in the chaincode namespace.
         let iterator = await ctx.stub.getStateByRange('', '');
@@ -168,8 +167,7 @@ class AssetTransfer extends Contract {
         }
 
         // asset must exist for additing reservation
-        let exists = await this.AssetExists(ctx, flightNr);
-        if (exists == false) {
+        if (await !this.assetExists(ctx, flightNr)) {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
 
@@ -227,13 +225,13 @@ class AssetTransfer extends Contract {
         }
 
         // asset must exist for additing reservation
-        let exists = await this.AssetExists(ctx, flightNr);
+        let exists = await this.assetExists(ctx, flightNr);
         if (exists == false) {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
 
         do {
-            let reservationNrTemp = flightNr + "-" + "20";//Math.floor(Math.random() * 1000).toString(16);
+            let reservationNrTemp = flightNr + "-" + "20"; //Math.floor(Math.random() * 1000).toString(16);
         } while (reservations[reservationNrTemp] == undefined)
 
         let reservation = {
@@ -273,8 +271,8 @@ class AssetTransfer extends Contract {
 
     // ======================== HELPER FUNCTIONS ========================
 
-    // AssetExists returns true when asset with given ID exists in world state.
-    async AssetExists(ctx, flightNr) {
+    // assetExists returns true when asset with given ID exists in world state.
+    async assetExists(ctx, flightNr) {
         const flightJSON = await ctx.stub.getState(flightNr);
         return flightJSON && flightJSON.length > 0;
     }
