@@ -69,7 +69,7 @@ async function main() {
 		// This type of transaction would only be run once by an application the first time it was started after it
 		// deployed the first time. Any updates to the chaincode deployed later would likely not need to run
 		// an "init" type function.
-		// await contract.submitTransaction('InitLedger');
+		//await contract.submitTransaction('InitLedger');
 	
         try {
 
@@ -140,9 +140,9 @@ async function main() {
                                 name: 'airlineAction',
                                 message: 'What you want to do?',
                                 choices: [
-                                    { title: 'Create flight', value: "createAsset" },
-                                    { title: 'Get all flights', value: "getAllAssets" },
-                                    { title: 'Get flight by flight number', value: "readAsset" },
+                                    { title: 'Create flight', value: "CreateAsset" },
+                                    { title: 'Get all flights', value: "GetAllAssets" },
+                                    { title: 'Get flight by flight number', value: "ReadAsset" },
                                     { title: 'Book seats', value: "bookSeats" },
                                     { title: 'Edit flight', value: "updateAsset" }
                                 ],
@@ -150,7 +150,7 @@ async function main() {
                             });
                         })();
 
-                        if (response2.airlineAction == "createAsset") {
+                        if (response2.airlineAction == "CreateAsset") {
                             // create flight
                             await (async() => {
                                 const responseFlyFrom = await prompts({
@@ -178,7 +178,7 @@ async function main() {
                                     type: 'number',
                                     name: 'availablePlaces',
                                     message: 'Enter available places: ',
-                                    initial: '',
+                                    initial: '256',
                                 });
 								let result = await contract.submitTransaction('CreateAsset', responseFlyFrom.flyFrom.toString(), responseFlyTo.flyTo.toString(), responseDateTimeDeparture.dateTimeDeparture.toString(), responseAvailablePlaces.availablePlaces.toString());
 								if (`${result}` !== '') {
@@ -187,8 +187,19 @@ async function main() {
 							})();
                             
                         }
-						else if (response2.airlineAction == "getAllAssets") {
+						else if (response2.airlineAction == "GetAllAssets") {
 							const result = await contract.evaluateTransaction('GetAllAssets');
+							console.log(`*** Result: ${prettyJSONString(result.toString())}`);
+						}
+						else if (response2.airlineAction == "ReadAsset") {
+							const flightNrForFind = await prompts({
+								type: 'text',
+								name: 'val',
+								message: 'Enter flight number for find: ',
+								initial: '',
+								validate: flightNrForFind => flightNrForFind.length == 5 ? true : 'Please enter a valid flight number'
+							});
+							let result = await contract.evaluateTransaction('ReadAsset', flightNrForFind.val.toString());
 							console.log(`*** Result: ${prettyJSONString(result.toString())}`);
 						}
 					}
@@ -201,7 +212,7 @@ async function main() {
 								name: 'function',
 								message: 'What you want to do?',
 								choices: [
-									{ title: 'Get flight by flight number', value: "readAsset" },
+									{ title: 'Get flight by flight number', value: "ReadAsset" },
 									{ title: 'Make reservation', value: "reserveSeats" },
 								],
 								initial: 1
