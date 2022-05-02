@@ -115,7 +115,7 @@ async function main() {
                     // travel agency
                     if (responseOfUserType.user == 1) {
 
-                        await gateway.connect(ccp3, { wallet3, identity: org3UserId, discovery: { enabled: true, asLocalhost: true } });
+                        await gateway.connect(ccp2, { wallet2, identity: org2UserId, discovery: { enabled: true, asLocalhost: true } });
                         const network = await gateway.getNetwork(channelName);
                         const contract = await network.getContract(chaincodeName);
 
