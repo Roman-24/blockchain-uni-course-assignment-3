@@ -69,7 +69,7 @@ class AssetTransfer extends Contract {
             let flightName
             if (orgName == 'Org1') {
                 flightName = 'EC';
-            } else if (orgName == 'Org3') {
+            } else if (orgName == 'Org2') {
                 flightName = 'BS';
             }
 
@@ -284,7 +284,7 @@ class AssetTransfer extends Contract {
     // isAeroline returns true if the function caller is an aeroline.
     isAeroline(ctx) {
         let mspid = ctx.clientIdentity.getMSPID();
-        if (mspid === 'Org1MSP' || mspid === 'Org3MSP') {
+        if (mspid === 'Org1MSP' || mspid === 'Org2MSP') {
             return true;
         }
         return false;
@@ -293,7 +293,7 @@ class AssetTransfer extends Contract {
     // isTravelAgency returns true if the function caller is a travel agency.
     isTravelAgency(ctx) {
         let mspid = ctx.clientIdentity.getMSPID();
-        if (mspid === 'Org2MSP') {
+        if (mspid === 'Org3MSP') {
             return true;
         }
         return false;
