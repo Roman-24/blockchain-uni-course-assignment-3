@@ -18,17 +18,17 @@ class AssetTransfer extends Contract {
         console.info('============= START : Initialize Ledger ===========');
 
         let flights = [{
-                flightNr: "EC001",
-                flyFrom: "BUD",
-                flyTo: "TXL",
-                dateTimeDeparture: "05032021-1034",
+                flightNr: 'EC001',
+                flyFrom: 'BUD',
+                flyTo: 'TXL',
+                dateTimeDeparture: '05032021-1034',
                 availablePlaces: 100,
             },
             {
-                flightNr: "BS015",
-                flyFrom: "MUC",
-                flyTo: "LIS",
-                dateTimeDeparture: "10042021-2157",
+                flightNr: 'BS015',
+                flyFrom: 'MUC',
+                flyTo: 'LIS',
+                dateTimeDeparture: '10042021-2157',
                 availablePlaces: 150,
             },
         ];
@@ -239,7 +239,7 @@ class AssetTransfer extends Contract {
 
         let reservationNrTemp;
         do {
-            reservationNrTemp = flightNr + "-" + (reservations.length + 1).toString().padStart(3, '0');
+            reservationNrTemp = flightNr + '-' + (reservations.length + 1).toString().padStart(3, '0');
         } while (reservations[reservationNrTemp] == undefined)
 
         let reservation = {
