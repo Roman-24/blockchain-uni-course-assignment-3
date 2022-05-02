@@ -15,14 +15,14 @@ class AssetTransfer extends Contract {
 
     async initLedger(ctx) {
 
-        console.info('============= START : Initialize Ledger ===========');
-
         let flights = [{
             flightNr: 'EC001',
             flyFrom: 'BUD',
             flyTo: 'TXL',
             dateTimeDeparture: '05032021-1034',
             availablePlaces: 100,
+            reservations: {}
+
         },
         {
             flightNr: 'BS015',
@@ -30,6 +30,8 @@ class AssetTransfer extends Contract {
             flyTo: 'LIS',
             dateTimeDeparture: '10042021-2157',
             availablePlaces: 150,
+            reservations: {}
+
         },
         ];
 
@@ -55,21 +57,21 @@ class AssetTransfer extends Contract {
 
         // get organization name from function caller
         let mspid = ctx.clientIdentity.getMSPID();
-        console.log(`mspid: ${mspid}`);
+        //console.log(`mspid: ${mspid}`);
         let orgName = mspid.split('MSP')[0];
 
         let flightNr;
         do {
-            console.log('Generating flight number');
+            //console.log('Generating flight number');
             let randomInt = 0;
             randomInt++;
             // https://stackoverflow.com/questions/1127905/how-can-i-format-an-integer-to-a-specific-length-in-javascript
             randomInt = randomInt.toString().padStart(3, '0');
 
             let flightName;
-            if (orgName == 'Org1') {
+            if (orgName === 'Org1') {
                 flightName = 'EC';
-            } else if (orgName == 'Org2') {
+            } else if (orgName === 'Org2') {
                 flightName = 'BS';
             }
 
@@ -104,7 +106,8 @@ class AssetTransfer extends Contract {
     async updateAsset(ctx, flightNr, flyFrom, flyTo, dateTimeDeparture, availablePlaces) {
 
         // asset must exist for update
-        if (await !this.assetExists(ctx, flightNr)) {
+        const exists = await this.assetExists(ctx, flightNr);
+        if (!exists) {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
 
@@ -122,7 +125,7 @@ class AssetTransfer extends Contract {
             availablePlaces: availablePlaces,
             reservations: reservations,
         };
-        console.log(`updatedFlight: ${JSON.stringify(updatedFlight)}`);
+        //console.log(`updatedFlight: ${JSON.stringify(updatedFlight)}`);
         await this.deleteAsset(ctx, flightNr);
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
         return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedFlight))));
@@ -132,7 +135,7 @@ class AssetTransfer extends Contract {
     async deleteAsset(ctx, flightNr) {
 
         let exists = await this.assetExists(ctx, flightNr);
-        if (exists == false) {
+        if (exists === false) {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
         return ctx.stub.deleteState(flightNr);
@@ -164,7 +167,7 @@ class AssetTransfer extends Contract {
 
         // check if function caller is an aeroline
         let isAeroline = await this.isAeroline(ctx);
-        if (isAeroline == false) {
+        if (isAeroline === false) {
             throw new Error('Only aerolines can reserve seats');
         }
 
@@ -183,7 +186,7 @@ class AssetTransfer extends Contract {
         // iterate the reservations
         for (let reservation in reservations) {
             // check the state of the reservation
-            if (reservations[reservation].state == 0) {
+            if (reservations[reservation].state === 0) {
                 // check if there are more available places than reservation number of seats
                 if (availablePlaces >= reservations[reservation].seats) {
 
@@ -219,13 +222,13 @@ class AssetTransfer extends Contract {
 
         // check if function caller is a travel agency
         let isTravelAgency = await this.isTravelAgency(ctx);
-        if (isTravelAgency == false) {
+        if (isTravelAgency === false) {
             throw new Error('Only travel agencies can book seats');
         }
 
         // asset must exist for additing reservation
         let exists = await this.assetExists(ctx, flightNr);
-        if (exists == false) {
+        if (exists === false) {
             throw new Error(`The asset ${flightNr} does not exist`);
         }
 
@@ -237,7 +240,7 @@ class AssetTransfer extends Contract {
         let reservationNrTemp;
         do {
             reservationNrTemp = flightNr + '-' + (reservations.length + 1).toString().padStart(3, '0');
-        } while (reservations[reservationNrTemp] == 'undefined');
+        } while (reservations[reservationNrTemp] === 'undefined');
 
         let reservation = {
             flightNr: flightNr,

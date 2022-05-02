@@ -11,20 +11,24 @@ const sinonChai = require('sinon-chai');
 const expect = chai.expect;
 
 const { Context } = require('fabric-contract-api');
-const { ChaincodeStub } = require('fabric-shim');
+const { ChaincodeStub, ClientIdentity } = require('fabric-shim');
 
 const AssetTransfer = require('../lib/assetTransfer.js');
 
 let assert = sinon.assert;
 chai.use(sinonChai);
 
-describe('Asset Transfer Basic Tests', () => {
-    let transactionContext, chaincodeStub, asset;
+describe('Asset Transfer Basic Tests - flight tests for ORG1', () => {
+    let transactionContext, chaincodeStub, asset, clientIdentity;
     beforeEach(() => {
         transactionContext = new Context();
 
         chaincodeStub = sinon.createStubInstance(ChaincodeStub);
         transactionContext.setChaincodeStub(chaincodeStub);
+
+        clientIdentity = sinon.createStubInstance(ClientIdentity);
+        clientIdentity.getMSPID.returns('Org1MSP');
+        transactionContext.setClientIdentity(clientIdentity);
 
         chaincodeStub.putState.callsFake((key, value) => {
             if (!chaincodeStub.states) {
@@ -64,11 +68,12 @@ describe('Asset Transfer Basic Tests', () => {
         });
 
         asset = {
-            ID: 'asset1',
-            Color: 'blue',
-            Size: 5,
-            Owner: 'Tomoko',
-            AppraisedValue: 300,
+            flightNr: 'EC001',
+            flyFrom: 'BUD',
+            flyTo: 'TXL',
+            dateTimeDeparture: '05032021-1034',
+            availablePlaces: 100,
+            reservations: {}
         };
     });
 
@@ -77,7 +82,7 @@ describe('Asset Transfer Basic Tests', () => {
             chaincodeStub.putState.rejects('failed inserting key');
             let assetTransfer = new AssetTransfer();
             try {
-                await assetTransfer.InitLedger(transactionContext);
+                await assetTransfer.initLedger(transactionContext);
                 assert.fail('InitLedger should have failed');
             } catch (err) {
                 expect(err.name).to.equal('failed inserting key');
@@ -86,42 +91,42 @@ describe('Asset Transfer Basic Tests', () => {
 
         it('should return success on InitLedger', async () => {
             let assetTransfer = new AssetTransfer();
-            await assetTransfer.InitLedger(transactionContext);
-            let ret = JSON.parse((await chaincodeStub.getState('asset1')).toString());
-            expect(ret).to.eql(Object.assign({docType: 'asset'}, asset));
+            await assetTransfer.initLedger(transactionContext);
+            let ret = JSON.parse((await chaincodeStub.getState('EC001')).toString());
+            expect(ret).to.eql(Object.assign({docType: 'flight'}, asset));
         });
     });
 
-    describe('Test CreateAsset', () => {
-        it('should return error on CreateAsset', async () => {
+    describe('Test createAsset - vytvorenie letu', () => {
+        it('should return error on createAsset', async () => {
             chaincodeStub.putState.rejects('failed inserting key');
 
             let assetTransfer = new AssetTransfer();
             try {
-                await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
-                assert.fail('CreateAsset should have failed');
+                await assetTransfer.createAsset(transactionContext, asset.flightNr, asset.flyFrom, asset.flyTo, asset.dateTimeDeparture, asset.availablePlaces);
+                assert.fail('createAsset should have failed');
             } catch(err) {
                 expect(err.name).to.equal('failed inserting key');
             }
         });
 
-        it('should return success on CreateAsset', async () => {
+        it('should return success on createAsset', async () => {
             let assetTransfer = new AssetTransfer();
 
-            await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
+            await assetTransfer.createAsset(transactionContext, asset.flyFrom, asset.flyTo, asset.dateTimeDeparture, asset.availablePlaces);
 
-            let ret = JSON.parse((await chaincodeStub.getState(asset.ID)).toString());
+            let ret = JSON.parse((await chaincodeStub.getState(asset.flightNr)).toString());
             expect(ret).to.eql(asset);
         });
     });
 
-    describe('Test ReadAsset', () => {
+    describe('Test ReadAsset - informacie o lete', () => {
         it('should return error on ReadAsset', async () => {
             let assetTransfer = new AssetTransfer();
-            await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
+            await assetTransfer.createAsset(transactionContext, asset.flyFrom, asset.flyTo, asset.dateTimeDeparture, asset.availablePlaces);
 
             try {
-                await assetTransfer.ReadAsset(transactionContext, 'asset2');
+                await assetTransfer.readAsset(transactionContext, 'asset2');
                 assert.fail('ReadAsset should have failed');
             } catch (err) {
                 expect(err.message).to.equal('The asset asset2 does not exist');
@@ -130,139 +135,89 @@ describe('Asset Transfer Basic Tests', () => {
 
         it('should return success on ReadAsset', async () => {
             let assetTransfer = new AssetTransfer();
-            await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
+            await assetTransfer.createAsset(transactionContext, asset.flyFrom, asset.flyTo, asset.dateTimeDeparture, asset.availablePlaces);
 
-            let ret = JSON.parse(await chaincodeStub.getState(asset.ID));
+            let ret = JSON.parse(await chaincodeStub.getState(asset.flightNr));
             expect(ret).to.eql(asset);
         });
     });
 
-    describe('Test UpdateAsset', () => {
+    describe('Test UpdateAsset - menenie atributov letu', () => {
         it('should return error on UpdateAsset', async () => {
             let assetTransfer = new AssetTransfer();
-            await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
+            await assetTransfer.createAsset(transactionContext, asset.flyFrom, asset.flyTo, asset.dateTimeDeparture, asset.availablePlaces);
 
             try {
-                await assetTransfer.UpdateAsset(transactionContext, 'asset2', 'orange', 10, 'Me', 500);
+                await assetTransfer.updateAsset(transactionContext, 'EC099', 'oprava1', 'oprava2', '000000000', 500);
                 assert.fail('UpdateAsset should have failed');
             } catch (err) {
-                expect(err.message).to.equal('The asset asset2 does not exist');
+                expect(err.message).to.equal('The asset EC099 does not exist');
             }
         });
 
         it('should return success on UpdateAsset', async () => {
             let assetTransfer = new AssetTransfer();
-            await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
+            await assetTransfer.createAsset(transactionContext, asset.flyFrom, asset.flyTo, asset.dateTimeDeparture, asset.availablePlaces);
 
-            await assetTransfer.UpdateAsset(transactionContext, 'asset1', 'orange', 10, 'Me', 500);
-            let ret = JSON.parse(await chaincodeStub.getState(asset.ID));
+            await assetTransfer.updateAsset(transactionContext, 'EC001', 'oprava1', 'oprava2', '000000000', 500);
+            let ret = JSON.parse(await chaincodeStub.getState(asset.flightNr));
             let expected = {
-                ID: 'asset1',
-                Color: 'orange',
-                Size: 10,
-                Owner: 'Me',
-                AppraisedValue: 500
+                flightNr: 'EC001',
+                flyFrom: 'oprava1',
+                flyTo: 'oprava2',
+                dateTimeDeparture: '000000000',
+                availablePlaces: 500,
+                reservations: {}
             };
             expect(ret).to.eql(expected);
         });
     });
 
-    describe('Test DeleteAsset', () => {
-        it('should return error on DeleteAsset', async () => {
-            let assetTransfer = new AssetTransfer();
-            await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
-
-            try {
-                await assetTransfer.DeleteAsset(transactionContext, 'asset2');
-                assert.fail('DeleteAsset should have failed');
-            } catch (err) {
-                expect(err.message).to.equal('The asset asset2 does not exist');
-            }
-        });
-
-        it('should return success on DeleteAsset', async () => {
-            let assetTransfer = new AssetTransfer();
-            await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
-
-            await assetTransfer.DeleteAsset(transactionContext, asset.ID);
-            let ret = await chaincodeStub.getState(asset.ID);
-            expect(ret).to.equal(undefined);
-        });
-    });
-
-    describe('Test TransferAsset', () => {
-        it('should return error on TransferAsset', async () => {
-            let assetTransfer = new AssetTransfer();
-            await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
-
-            try {
-                await assetTransfer.TransferAsset(transactionContext, 'asset2', 'Me');
-                assert.fail('DeleteAsset should have failed');
-            } catch (err) {
-                expect(err.message).to.equal('The asset asset2 does not exist');
-            }
-        });
-
-        it('should return success on TransferAsset', async () => {
-            let assetTransfer = new AssetTransfer();
-            await assetTransfer.CreateAsset(transactionContext, asset.ID, asset.Color, asset.Size, asset.Owner, asset.AppraisedValue);
-
-            await assetTransfer.TransferAsset(transactionContext, asset.ID, 'Me');
-            let ret = JSON.parse((await chaincodeStub.getState(asset.ID)).toString());
-            expect(ret).to.eql(Object.assign({}, asset, {Owner: 'Me'}));
-        });
-    });
-
+    /*
     describe('Test GetAllAssets', () => {
-        it('should return success on GetAllAssets', async () => {
-            let assetTransfer = new AssetTransfer();
-
-            await assetTransfer.CreateAsset(transactionContext, 'asset1', 'blue', 5, 'Robert', 100);
-            await assetTransfer.CreateAsset(transactionContext, 'asset2', 'orange', 10, 'Paul', 200);
-            await assetTransfer.CreateAsset(transactionContext, 'asset3', 'red', 15, 'Troy', 300);
-            await assetTransfer.CreateAsset(transactionContext, 'asset4', 'pink', 20, 'Van', 400);
-
-            let ret = await assetTransfer.GetAllAssets(transactionContext);
-            ret = JSON.parse(ret);
-            expect(ret.length).to.equal(4);
-
-            let expected = [
-                {Record: {ID: 'asset1', Color: 'blue', Size: 5, Owner: 'Robert', AppraisedValue: 100}},
-                {Record: {ID: 'asset2', Color: 'orange', Size: 10, Owner: 'Paul', AppraisedValue: 200}},
-                {Record: {ID: 'asset3', Color: 'red', Size: 15, Owner: 'Troy', AppraisedValue: 300}},
-                {Record: {ID: 'asset4', Color: 'pink', Size: 20, Owner: 'Van', AppraisedValue: 400}}
-            ];
-
-            expect(ret).to.eql(expected);
-        });
-
         it('should return success on GetAllAssets for non JSON value', async () => {
             let assetTransfer = new AssetTransfer();
 
-            chaincodeStub.putState.onFirstCall().callsFake((key, value) => {
-                if (!chaincodeStub.states) {
-                    chaincodeStub.states = {};
-                }
-                chaincodeStub.states[key] = 'non-json-value';
-            });
-
-            await assetTransfer.CreateAsset(transactionContext, 'asset1', 'blue', 5, 'Robert', 100);
-            await assetTransfer.CreateAsset(transactionContext, 'asset2', 'orange', 10, 'Paul', 200);
-            await assetTransfer.CreateAsset(transactionContext, 'asset3', 'red', 15, 'Troy', 300);
-            await assetTransfer.CreateAsset(transactionContext, 'asset4', 'pink', 20, 'Van', 400);
+            await assetTransfer.createAsset(transactionContext, 'VIE', 'RTG', '000000000', 500);
+            await assetTransfer.createAsset(transactionContext, 'BLA', 'RTG', '000000000', 200);
+            await assetTransfer.createAsset(transactionContext, 'SCL', 'RTG', '000000000', 300);
+            await assetTransfer.createAsset(transactionContext, 'GPC', 'RTG', '000000000', 400);
 
             let ret = await assetTransfer.GetAllAssets(transactionContext);
             ret = JSON.parse(ret);
             expect(ret.length).to.equal(4);
 
             let expected = [
-                {Record: 'non-json-value'},
-                {Record: {ID: 'asset2', Color: 'orange', Size: 10, Owner: 'Paul', AppraisedValue: 200}},
-                {Record: {ID: 'asset3', Color: 'red', Size: 15, Owner: 'Troy', AppraisedValue: 300}},
-                {Record: {ID: 'asset4', Color: 'pink', Size: 20, Owner: 'Van', AppraisedValue: 400}}
+                {Record: {flightNr: 'EC001', flyFrom: 'VIE', flyTo: 'RTG', dateTimeDeparture: '000000000', availablePlaces: 500, reservations: {}}},
+                {Record: {flightNr: 'EC002', flyFrom: 'BLA', flyTo: 'RTG', dateTimeDeparture: '000000000', availablePlaces: 200, reservations: {}}},
+                {Record: {flightNr: 'EC003', flyFrom: 'SCL', flyTo: 'RTG', dateTimeDeparture: '000000000', availablePlaces: 300, reservations: {}}},
+                {Record: {flightNr: 'EC004', flyFrom: 'GPC', flyTo: 'RTG', dateTimeDeparture: '000000000', availablePlaces: 400, reservations: {}}},
+            ];
+
+            expect(ret).to.eql(expected);
+        });
+
+        it('should return success on GetAllAssets', async () => {
+            let assetTransfer = new AssetTransfer();
+
+            await assetTransfer.createAsset(transactionContext, 'VIE', 'RTG', '000000000', 500);
+            await assetTransfer.createAsset(transactionContext, 'BLA', 'RTG', '000000000', 200);
+            await assetTransfer.createAsset(transactionContext, 'SCL', 'RTG', '000000000', 300);
+            await assetTransfer.createAsset(transactionContext, 'GPC', 'RTG', '000000000', 400);
+
+            let ret = await assetTransfer.getAllAssets(transactionContext);
+            ret = JSON.parse(ret);
+            expect(ret.length).to.equal(4);
+
+            let expected = [
+                {Record: {flightNr: 'EC001', flyFrom: 'VIE', flyTo: 'RTG', dateTimeDeparture: '000000000', availablePlaces: 500, reservations: {}}},
+                {Record: {flightNr: 'EC002', flyFrom: 'BLA', flyTo: 'RTG', dateTimeDeparture: '000000000', availablePlaces: 200, reservations: {}}},
+                {Record: {flightNr: 'EC003', flyFrom: 'SCL', flyTo: 'RTG', dateTimeDeparture: '000000000', availablePlaces: 300, reservations: {}}},
+                {Record: {flightNr: 'EC004', flyFrom: 'GPC', flyTo: 'RTG', dateTimeDeparture: '000000000', availablePlaces: 400, reservations: {}}},
             ];
 
             expect(ret).to.eql(expected);
         });
     });
+    */
 });
