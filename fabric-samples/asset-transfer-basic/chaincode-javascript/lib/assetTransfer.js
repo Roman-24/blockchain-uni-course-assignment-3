@@ -18,19 +18,19 @@ class AssetTransfer extends Contract {
         console.info('============= START : Initialize Ledger ===========');
 
         let flights = [{
-                flightNr: 'EC001',
-                flyFrom: 'BUD',
-                flyTo: 'TXL',
-                dateTimeDeparture: '05032021-1034',
-                availablePlaces: 100,
-            },
-            {
-                flightNr: 'BS015',
-                flyFrom: 'MUC',
-                flyTo: 'LIS',
-                dateTimeDeparture: '10042021-2157',
-                availablePlaces: 150,
-            },
+            flightNr: 'EC001',
+            flyFrom: 'BUD',
+            flyTo: 'TXL',
+            dateTimeDeparture: '05032021-1034',
+            availablePlaces: 100,
+        },
+        {
+            flightNr: 'BS015',
+            flyFrom: 'MUC',
+            flyTo: 'LIS',
+            dateTimeDeparture: '10042021-2157',
+            availablePlaces: 150,
+        },
         ];
 
         for (let flight of flights) {
@@ -49,7 +49,7 @@ class AssetTransfer extends Contract {
 
         // chceck if function caller is an organization
         let isAeroline = await this.isAeroline(ctx);
-        if (isAeroline == false) {
+        if (isAeroline === false) {
             throw new Error('Only organizations can create assets');
         }
 
@@ -66,7 +66,7 @@ class AssetTransfer extends Contract {
             // https://stackoverflow.com/questions/1127905/how-can-i-format-an-integer-to-a-specific-length-in-javascript
             randomInt = randomInt.toString().padStart(3, '0');
 
-            let flightName
+            let flightName;
             if (orgName == 'Org1') {
                 flightName = 'EC';
             } else if (orgName == 'Org2') {
@@ -177,10 +177,7 @@ class AssetTransfer extends Contract {
         let flightJSON = await ctx.stub.getState(flightNr);
         let flight = JSON.parse(flightJSON.toString());
 
-        // get no of available places
         let availablePlaces = flight.availablePlaces;
-
-        // get reservations from the flight
         let reservations = flight.reservations;
 
         // iterate the reservations
@@ -207,9 +204,9 @@ class AssetTransfer extends Contract {
         // overwriting original asset with new asset
         let updatedFlight = {
             flightNr: flightNr,
-            flyFrom: flyFrom,
-            flyTo: flyTo,
-            dateTimeDeparture: dateTimeDeparture,
+            flyFrom: flight.flyFrom,
+            flyTo: flight.flyTo,
+            dateTimeDeparture: flight.dateTimeDeparture,
             availablePlaces: availablePlaces,
             reservations: reservations,
         };
@@ -234,13 +231,13 @@ class AssetTransfer extends Contract {
 
         // get the reservations from chaincode state
         let flightJSON = await ctx.stub.getState(flightNr);
-        flight = JSON.parse(flightJSON.toString());
+        let flight = JSON.parse(flightJSON.toString());
         let reservations = flight.reservations;
 
         let reservationNrTemp;
         do {
             reservationNrTemp = flightNr + '-' + (reservations.length + 1).toString().padStart(3, '0');
-        } while (reservations[reservationNrTemp] == undefined)
+        } while (reservations[reservationNrTemp] == 'undefined');
 
         let reservation = {
             flightNr: flightNr,
@@ -258,12 +255,12 @@ class AssetTransfer extends Contract {
 
         // overwriting original asset with new asset
         let updatedFlight = {
-            flightNr: flightNr,
-            flyFrom: flyFrom,
-            flyTo: flyTo,
-            dateTimeDeparture: dateTimeDeparture,
-            availablePlaces: availablePlaces,
-            reservations: reservations,
+            flightNr: flight.flightNr,
+            flyFrom: flight.flyFrom,
+            flyTo: flight.flyTo,
+            dateTimeDeparture: flight.dateTimeDeparture,
+            availablePlaces: flight.availablePlaces,
+            reservations: flight.reservations,
         };
         // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
         return ctx.stub.putState(flightNr, Buffer.from(stringify(sortKeysRecursive(updatedFlight))));
